@@ -1,6 +1,5 @@
 
 states = {	'AL': 'Alabama',
-			'AZ': 'Arizona',
 			'CO': 'Colorado',
 			'FL': 'Florida',
 			'IL': 'Illinois',
