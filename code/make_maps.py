@@ -3,6 +3,7 @@ import numpy as np
 import shapely
 
 import matplotlib as mpl
+mpl.use('TkAgg')   # if using mac OS X
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon

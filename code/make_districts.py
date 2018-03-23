@@ -2,8 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 import geopandas as geo
-import seaborn as sns
-import shapely
 import pickle
 import utils
 
