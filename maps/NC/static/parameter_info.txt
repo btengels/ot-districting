@@ -1,0 +1,7 @@
+Original population deviation was 0.00168285045324
+Original EG was 0.0117565039099
+Geographic population deviation was 0.00699184545596
+Geographic EG was 0.0886005089435
+Geographic and demographic population deviation was 0.00806282669708
+Final EG was 0.0879997684655
+Final alphaW value was 0.4

@@ -94,14 +94,41 @@ class map_maker(object):
 		# 				   alpha=.7)	
 
 		prefix = '../maps/' + self.state + '/static/'
-		filename = prefix + '_after.png'
+		filename = prefix + 'optimal_alpha.png'
 		fig.savefig(filename, bbox_inches='tight', dpi=300)
 		# stars.remove()
 
 		# make bokeh map
 		prefix = '../maps/' + self.state + '/dynamic/'
 		filename =  prefix + '_after.html'
-		df = self.make_bokeh_map('district_final', filename)
+		#df = self.make_bokeh_map('district_final', filename) #This threw a funny error at some point...
+
+
+		# update colors on existing figure for optimal districting solution
+		colors = np.array([self.palette[i] for i in self.pcnct_df['district_final_alpha_0']])
+		patches.set_color(colors)
+
+		# make sure bounding box is consistent across figures
+		ax.set_xlim(xlim)
+		ax.set_ylim(ylim)
+
+		# # plot district offices and save figure
+		# stars =	ax.scatter(self.F_opt[:, 0], self.F_opt[:, 1],
+		# 				   color='black',
+		# 				   marker='*', 
+		# 				   s=30, 
+		# 				   alpha=.7)	
+
+		prefix = '../maps/' + self.state + '/static/'
+		filename = prefix + 'alpha_0.png'
+		fig.savefig(filename, bbox_inches='tight', dpi=300)
+		# stars.remove()
+
+		# make bokeh map
+		prefix = '../maps/' + self.state + '/dynamic/'
+		filename =  prefix + '_after_alpha_0.html'
+		#df = self.make_bokeh_map('district_final_alpha_0', filename) #Same as above.
+
 
 	def plot_state(self, colors, ax, fig, filename, F_opt=None):
 		"""
@@ -255,7 +282,7 @@ class map_maker(object):
 		return patches
 
 
-	def _make_palette(self, cmap=plt.cm.Paired, hex=False):
+	def _make_palette(self, cmap=plt.cm.jet, hex=False):#Before it was plt.cm.Paired
 		"""
 		Takes matplotlib cmap object and generates a palette of n equidistant points
 		over the cmap spectrum, returned as a list. 

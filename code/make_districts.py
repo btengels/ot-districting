@@ -20,7 +20,7 @@ class district_solver(object):
 		self.wget = False
 
 		self.random_start = True
-		self.reg_param = 25
+		self.reg_param = 20 #25
 
 	def load_data(self, build=False):
 		"""
@@ -37,7 +37,7 @@ class district_solver(object):
 				self._get_self.state_data()		
 					
 
-	def get_optimal_districts(self, reg=.5):
+	def get_optimal_districts(self, tmp_reg=.5):
 		"""
 		This function takes a geopandas DataFrame and computes the set of 
 		congressional districts that minimize the total "distance" between precincts
@@ -100,14 +100,78 @@ class district_solver(object):
 		for i_d, dist in enumerate(self.pcnct_df.CD_2010.values):
 			transp_map[i_d, int(dist)] = pcnct_wgt[i_d]	
 
-		# solve for optimal districts as alphaW increases
+
+
+
+		# Begin by solving for best districts when alphaW = 0.
 		alphaW = 0
 		contiguity = True
 		self.cost_best = 20
-		for alphaW in [.2, .3, .4, .5, .6, .7, .8]:
+
+
+		for F_loc0 in office_loc_list:
+				
+			# distance of each precinct to its center (aka, "office")
+			DistMat = tpf.get_DistMat(pcnct_loc, F_loc0, alphaW)
+			Dist_travel, Dist_demographics = tpf.distance_metric(pcnct_loc, F_loc0, alphaW)
+
+			# evaluate cost function given current districts
+			office_loc = tpf.optimizeF(pcnct_loc, pcnct_wgt, F_loc0, F_wgt, transp_map, DistMat)
+
+			temp = np.log(transp_map)	
+			temp[np.isreal(np.log(transp_map))] = 0
+			cost0 = np.sum(DistMat*transp_map) + 1.0/self.reg_param*np.sum(temp*transp_map)
+
+			# compute optimal districts, offices, and transport cost
+			opt_dist, F_opt, cost, transp_map_opt = tpf.gradientDescentOT(pcnct_loc, 
+													    			  pcnct_wgt, 
+														  			  office_loc, 
+														  			  F_wgt,
+														  			  reg=self.reg_param,
+														  			  alphaW=alphaW)
+
+			temp = np.log(transp_map_opt)	
+			temp[np.isreal(np.log(transp_map_opt))] = 0
+
+			Dist_travel, Dist_demographics = tpf.distance_metric(pcnct_loc, F_opt, alphaW)
+			cost_travel = np.sum(Dist_travel*transp_map_opt)#Note I changed the alphaW here...
+			cost_demographic = alphaW * np.sum(Dist_demographics*transp_map_opt) 
+			cost_regularization = 1.0/self.reg_param*np.sum(temp*transp_map_opt)
+
+			# update if we are the current best district and contiguous
+			if cost < self.cost_best:
+				self.opt_district_best = opt_dist.copy()
+				self.F_opt_best = F_opt.copy()
+				self.F_loc0_best = F_loc0
+				self.cost0_best = cost0
+				self.cost_best = cost
+				self.alphaW_best = alphaW
+
+		print(self.state, alphaW, self.cost_best)
+
+
+		# update dataframe with districts for each precinct
+		self.pcnct_df['district_final_alpha_0'] = self.opt_district_best
+		
+		DistMat_0 = tpf.distance_metric(pcnct_loc, self.F_loc0_best, 0)		
+		self.pcnct_df['precinct_cost_alpha_0_init'] = self.cost0_best
+		self.pcnct_df['precinct_cost_alpha_0_final'] = self.cost_best
+
+		self.n_districts = n_districts
+		self.n_precincts = n_precincts
+	
+
+
+
+
+
+		#Next increase alphaW until the 10% threshold has been reached. 10% may need to be made higher?
+
+		for alphaW in [.4, .6]:#I trimmed some values for speed here.
 			
-			print(self.state, alphaW, self.cost_best)
 			# initialize cost_best variable
+
+			self.cost_best = 20
 
 			# find the best result over (perhaps several random) starting points
 			for F_loc0 in office_loc_list:
@@ -135,7 +199,7 @@ class district_solver(object):
 				temp[np.isreal(np.log(transp_map_opt))] = 0
 
 				Dist_travel, Dist_demographics = tpf.distance_metric(pcnct_loc, F_opt, alphaW)
-				cost_travel = (1 - alphaW) * np.sum(Dist_travel*transp_map_opt)
+				cost_travel = np.sum(Dist_travel*transp_map_opt)#Note I changed the alphaW here...
 				cost_demographic = alphaW * np.sum(Dist_demographics*transp_map_opt) 
 				cost_regularization = 1.0/self.reg_param*np.sum(temp*transp_map_opt)
 
@@ -146,10 +210,14 @@ class district_solver(object):
 					self.F_loc0_best = F_loc0
 					self.cost0_best = cost0
 					self.cost_best = cost
-					self.alphaW_best = alphaW	
+					self.alphaW_best = alphaW
+					self.best_cost_demographic = cost_demographic
 
-			if cost_demographic/self.cost_best > .2:
-				print(self.state, alphaW, self.cost_best, cost_demographic/cost)
+			print(self.state, alphaW, self.cost_best)
+
+
+			if self.best_cost_demographic/self.cost_best > .1:
+				print(self.state, alphaW, self.cost_best, self.best_cost_demographic/self.cost_best)
 				break  # exit alphaW loop
 
 		# update dataframe with districts for each precinct

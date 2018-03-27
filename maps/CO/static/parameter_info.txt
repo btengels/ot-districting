@@ -1,0 +1,4 @@
+Original population deviation was 0.000808479242204
+Geographic population deviation was 0.0153667327721
+Geographic and demographic population deviation was 0.0154800709836
+Final alphaW value was 0.2
