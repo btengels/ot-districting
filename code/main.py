@@ -1,9 +1,12 @@
 import pandas as pd
 import numpy as np
+import pickle
+from operator import itemgetter
+
 
 from make_districts import district_solver
 from states import states
-from make_maps import map_maker 
+from map_maker import map_maker 
 
 
 def make_barplot(df_list, state, labels):	
@@ -88,15 +91,16 @@ if __name__ == '__main__':
 
 	cost_df = pd.DataFrame()
 	state_list = list(states.keys())
-	state_list.sort()
+	state_list.sort(key=itemgetter(0))
 
 	state_results = {}
 	hist_labels = ['Current', r"$\alpha_W=0$", r"$\alpha_W=.25$", r"$\alpha_W=.75$"]
 
 	state_df_list = []
 	district_results = pd.DataFrame()	
+	# for state in state_list:
 	for state in state_list:
-		print(state)
+		print(state)	
 
 		# get data from shapefiles if not available already
 		ds = district_solver(state)
@@ -116,25 +120,25 @@ if __name__ == '__main__':
 
 
 		# plot functions group precinct dataframe into district dataframe
-		mapper = map_maker(ds.pcnct_df, state)
-		mapper.make_state_maps()
+		if state in ['NC', 'MD', 'VA']:
+			is_wide = True
+					
+		mapper = map_maker(ds.pcnct_df, state, is_wide=is_wide)
+		mapper.make_state_maps('../maps/')
 
-		dist_df0 = mapper._get_district_df('CD_2010')
-		dist_df0.rename(columns={'precinct_cost_0':'precinct_cost'}, inplace=True)
-		dist_df0['current_districts'] = True
+		dist_df_before = ds.pcnct_df[['DEM', 'REP', 'POP_BLACK', 'POP_TOTAL', 'CD_2010']].groupby('CD_2010').sum()
+		dist_df_before.loc[:, 'precinct_cost'] = ds.pcnct_df['precinct_cost_0'].values[0]
+		dist_df_before.loc[:, 'current_districts'] = True
 
-		dist_df_final = mapper._get_district_df('district_final')
-		dist_df_final.rename(columns={'precinct_cost_final':'precinct_cost'}, inplace=True)
-		dist_df_final['current_districts'] = False
-
-		# which columns to keep
-		columns = ['precinct_cost', 'current_districts', 'DEM', 'REP', 'DEM_PCT', 'REP_PCT']
-		# columns += [c for c in dist_df0.columns if 'PRES' in c]
-		columns += [c for c in dist_df0.columns if 'POP_' in c]
+		dist_df_final = ds.pcnct_df[['DEM', 'REP', 'POP_BLACK', 'POP_TOTAL', 'district_final']].groupby('district_final').sum()
+		dist_df_final.loc[:, 'precinct_cost'] = ds.pcnct_df['precinct_cost_final'].values[0]
+		dist_df_final.loc[:, 'current_districts'] = False
 		
-		df = dist_df0.append(dist_df_final)
-		df = df[columns]
+		# combine aggregate info from before
+		df = dist_df_before.append(dist_df_final)
+		df['DEM_PCT'] = df['DEM']/df[['DEM', 'REP']].sum(axis=1)
+		df['REP_PCT'] = df['DEM']/df[['DEM', 'REP']].sum(axis=1)
 		df['state'] = state
 		district_results = district_results.append(df)
 
-	district_results.to_csv('map_test_data.csv')
+	district_results.to_csv('precinct_level_aggregates.csv')

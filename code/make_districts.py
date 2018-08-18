@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import geopandas as geo
 import pickle
-import utils
+import utils 
 
 from subprocess import call
 from glob import glob
@@ -12,19 +12,18 @@ from states import states
 
 
 class district_solver(object):
-	"""Object that contains all the data/methods needed to create optimal districts """
+	"""Object that contains all the data/methods needed to create optimal districts"""
 
 	def __init__(self, state):
 		self.state = state
-		self.state_name = states[self.state]
+		self.state_name = states[self.state][0]
 		self.wget = False
 
 		self.random_start = True
 		self.reg_param = 25
 
 	def load_data(self, build=False):
-		"""
-		Sets self.pcnct_df attribute
+		"""Assigns self.pcnct_df attribute, either by reading in a pickle or solving from raw data
 
 		"""
 		if build:
@@ -43,25 +42,22 @@ class district_solver(object):
 		congressional districts that minimize the total "distance" between precincts
 		(rows in DataFrame) and the district "offices" (centroids).
 
-		INPUTS: 
+		INPUT: 
 		----------------------------------------------------------------------------
-		pcnct_df: geopandas DataFrame listing precinct-level data for a given self.state
-		random_start: boolean(default=True) random initial coordinates for offices
 		reg: scalar, regularization term used in cost function
 
-		OUTPUTS:
+		OUTPUT:
 		----------------------------------------------------------------------------
 		cost0: scalar, value of cost function at F_loc0
 		cost: scalar, value of cost function at algorithm end
 		pcnct_df: geopandas dataFrame, now with additional column 'final_district'
 		F_opt: np.array, indicates the location of optimal office locations
 		"""
-
 		# weight each precinct by its population share
 		n_districts = int(self.pcnct_df.CD_2010.max()) + 1
 		n_precincts = len(self.pcnct_df)
 		pcnct_loc = self.pcnct_df[['INTPTLON10', 'INTPTLAT10', 'BLACK_PCT']].values
-		pcnct_pop = np.maximum(self.pcnct_df.POP_TOTAL.values, 20)
+		pcnct_pop = np.maximum(self.pcnct_df.POP_TOTAL.values, 20) # put nonzero mass in every precinct
 		pcnct_wgt = pcnct_pop/pcnct_pop.sum()
 
 		# initial guess for district offices
@@ -125,11 +121,11 @@ class district_solver(object):
 
 				# compute optimal districts, offices, and transport cost
 				opt_dist, F_opt, cost, transp_map_opt = tpf.gradientDescentOT(pcnct_loc, 
-														    			  pcnct_wgt, 
-															  			  office_loc, 
-															  			  F_wgt,
-															  			  reg=self.reg_param,
-															  			  alphaW=alphaW)
+														    			  	  pcnct_wgt, 
+															  			  	  office_loc, 
+															  			  	  F_wgt,
+															  			  	  reg=self.reg_param,
+															  			  	  alphaW=alphaW)
 
 				temp = np.log(transp_map_opt)	
 				temp[np.isreal(np.log(transp_map_opt))] = 0
@@ -202,8 +198,8 @@ class district_solver(object):
 		# -------------------------------------------------------------------------
 		# ADJUST ASPECT RATIO HERE:
 		# -------------------------------------------------------------------------
-		geo_df = geo_df.to_crs(epsg=3395)
-		geo_df.geometry = geo_df.geometry.scale(xfact=1/100000, yfact=1/100000, zfact=1.0, origin=(0, 0))
+		geo_df = geo_df.to_crs(epsg=4267)
+		# geo_df.geometry = geo_df.geometry.scale(xfact=1/100000, yfact=1/100000, zfact=1.0, origin=(0, 0))
 
 		# simplify geometries for faster image rendering
 		# bigger number gives a smaller file size    
@@ -246,34 +242,16 @@ class district_solver(object):
 		geo_df.loc[np.isfinite(geo_df['POP_TOTAL']) == False, 'BLACK_PCT'] = 0
 		geo_df.fillna({'BLACK_PCT':0}, inplace=True)
 
-		# exclude shapes that have no land (bodies of water)
-		geo_df = geo_df[geo_df.ALAND10.isnull() == False]
-		geo_df[['ALAND10', 'AWATER10']] = geo_df[['ALAND10', 'AWATER10']].astype(int)    
-
-		# trim out water polygons from dataframe
-		water_cut = 20
-		if self.state in ['CA', 'NC', 'PA', 'NJ', 'CT', 'OH', 'TX', 'FL']:
-		    water_cut = 8
-
-		if self.state in ['MA', 'MI', 'WA', 'MN']:
-		    water_cut = 4
-
-		if self.state in ['IL', 'WI', 'NY', 'MD', 'LA', 'AK']:
-		    water_cut = 2
-
-		if water_cut < 20:
-		    geo_df['VTDST10'] = geo_df['VTDST10'].astype(str)
-		    geo_df = geo_df[ geo_df['VTDST10'].str.contains('ZZ') == False]
-		    geo_df = geo_df[ geo_df['VTDST10'].str.contains('BAY') == False]
-		    geo_df = geo_df[ geo_df['VTDST10'].str.contains('OCEAN') == False]    
-		    geo_df = geo_df[np.abs(geo_df['AWATER10']/geo_df['ALAND10']) < water_cut]
+		# political breakdown
+		geo_df['DEM'] = geo_df[['PRES04_DEM','PRES08_DEM','PRES12_DEM']].mean(axis=1)
+		geo_df['REP'] = geo_df[['PRES04_REP','PRES08_REP','PRES12_REP']].mean(axis=1)
+		geo_df['REP_PCT'] = geo_df['REP']/(geo_df['DEM'] + geo_df['REP'])
+		geo_df['DEM_PCT'] = geo_df['DEM']/(geo_df['DEM'] + geo_df['REP'])
 
 		# unpack multipolygons
-		self.pcnct_df = utils.unpack_multipolygons(geo_df)
+		self.pcnct_df = geo_df#utils.unpack_multipolygons(geo_df)
 
 		# pickle dataframe for future use
-		pickle.dump(self.pcnct_df, open(prefix + '/precinct_data.p', 'wb'), protocol=2) 
-
-
+		pickle.dump(self.pcnct_df, open(prefix + '/precinct_data.p', 'wb'), protocol=2)
 
 
