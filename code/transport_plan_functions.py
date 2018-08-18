@@ -82,7 +82,7 @@ def get_DistMat(I_in, F_in, alphaW):
 	"""
 	"""
 	Dist_travel, Dist_demographics = distance_metric(I_in, F_in, alphaW)
-	return (1-alphaW)*Dist_travel + alphaW*Dist_demographics
+	return Dist_travel + alphaW*Dist_demographics #(1-alphaW)*Dist_travel + alphaW*Dist_demographics
 
 
 def gradientDescentOT(Iin, I_wgt, Fin, F_wgt, reg=20, alphaW=0):
@@ -189,7 +189,7 @@ def _computeSinkhorn(I_wgt, F_wgt, Distmat, reg, uin):
 	# project map onto constraints repeatedly to find optimal transport map
 	count = 0
 	err=1
-	while (err > 1e-5 and count < numItermax):
+	while (err > 1e-6 and count < numItermax):
 		if np.logical_or(np.any(np.dot(K.T, u) == 0), np.isnan(np.sum(u))):
 			# we have reached machine precision
 			# come back to previous solution and quit loop
@@ -208,6 +208,9 @@ def _computeSinkhorn(I_wgt, F_wgt, Distmat, reg, uin):
 			err = np.linalg.norm((np.sum(transp, axis=0) - F_wgt))**2
 			# print(err)
 		count += 1
+            
+	if count > numItermax:
+		print('warning, max iterations reached')
 
 	# after convergence is reached, back out transport map
 	transport_map = np.atleast_2d(u).T*K*v
