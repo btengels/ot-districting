@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from states import states
 from map_maker import map_maker 
 from make_districts import district_solver
+from utils import make_folder
 
 
 def make_barplot(df_list, state, labels):	
@@ -118,6 +119,9 @@ def make_histograms(df,state):
         #Generates and saves static histograms from the dataframe
 
         #Histogram for partisan outcomes
+
+	make_folder('../maps/'+state+'/static')
+
 
 	final_partisan_vec = np.zeros(len(np.unique(df.CD_2010)))
 	geo_partisan_vec = np.zeros(len(np.unique(df.CD_2010)))
@@ -231,6 +235,8 @@ if __name__ == '__main__':
 		# plot functions group precinct dataframe into district dataframe
 		if state in ['NC', 'MD', 'VA']:
 			is_wide = True
+		else:
+                	is_wide = False
 		
 		# make maps			
 		mapper = map_maker(ds.pcnct_df, state, is_wide=is_wide)
