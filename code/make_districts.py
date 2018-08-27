@@ -157,13 +157,12 @@ class district_solver(object):
 		self.n_precincts = n_precincts
 	
 
-
-
+		demographic_param = .1 #Parameter for heuristic balancing demographic and geographic cost
 
 
 		#Next increase alphaW until the 10% threshold has been reached. 10% may need to be made higher?
 
-		for alphaW in [.4, .6]:#I trimmed some values for speed here.
+		for alphaW in [.2, .4, .6, .8]:#I trimmed some values for speed here.
 			
 			# initialize cost_best variable
 
@@ -212,9 +211,15 @@ class district_solver(object):
 			print(self.state, alphaW, self.cost_best)
 
 
-			if self.best_cost_demographic/self.cost_best > .1:
+			if self.best_cost_demographic/self.cost_best > demographic_param:
 				print(self.state, alphaW, self.cost_best, self.best_cost_demographic/self.cost_best)
 				break  # exit alphaW loop
+
+                        #Alternative: just increase until the total cost has increased by a certain percentage
+                        #if self.cost_best > (1 + demographic_param)*self.pcnct_df['precinct_cost_alpha_0_final']:
+                        #        print(self.state, alphaW, self.cost_best, self.best_cost_demographic/self.cost_best)
+			#        break  # exit alphaW loop
+
 
 		# update dataframe with districts for each precinct
 		self.pcnct_df['district_final'] = self.opt_district_best
