@@ -9,6 +9,9 @@ from states import states
 from map_maker import map_maker 
 from make_districts import district_solver
 from utils import make_folder
+import matplotlib as mpl
+sns.set_style("white")
+mpl.rc('font',family='serif')
 
 
 def make_barplot(df_list, state, labels):	
@@ -57,7 +60,7 @@ def make_barplot(df_list, state, labels):
 		ax[idf].set_ylabel(labels[idf])		
 
 	filename = '../analysis/' + state + '/barplot.pdf'
-	fig.savefig(filename, bbox_inches='tight', dpi=100)
+	fig.savefig(filename, bbox_inches='tight', dpi=300)
 	plt.close()
 
 	return None
@@ -116,10 +119,6 @@ def EG_helper(vec):
 	return str(np.abs(wasted_Rep-wasted_Dem))
 
 def make_histograms(df,state):
-        #Generates and saves static histograms from the dataframe
-
-        #Histogram for partisan outcomes
-
 	make_folder('../maps/'+state+'/static')
 
 
@@ -128,18 +127,22 @@ def make_histograms(df,state):
 	original_partisan_vec = np.zeros(len(np.unique(df.CD_2010)))
 	
 	for district in np.unique(df.district_final):
-		final_partisan_vec[district] = (df.district_final == district).dot(df.PRES12_REP)/((df.district_final == district).dot(df.PRES12_REP + df.PRES12_DEM))
-		geo_partisan_vec[district] = (df.district_final_alpha_0 == district).dot(df.PRES12_REP)/((df.district_final_alpha_0 == district).dot(df.PRES12_REP + df.PRES12_DEM))
-		original_partisan_vec[district] = (df.CD_2010 == district).dot(df.PRES12_REP)/((df.CD_2010 == district).dot(df.PRES12_REP + df.PRES12_DEM))
+		final_partisan_vec[district] = (df.district_final == district).dot(df.REP)/((df.district_final == district).dot(df.REP + df.DEM))
+		geo_partisan_vec[district] = (df.district_final_alpha_0 == district).dot(df.REP)/((df.district_final_alpha_0 == district).dot(df.REP + df.DEM))
+		original_partisan_vec[district] = (df.CD_2010 == district).dot(df.REP)/((df.CD_2010 == district).dot(df.REP + df.DEM))
 	
-	
-	fig, ax = plt.subplots(1, 1,figsize=(8,8), subplot_kw=dict(aspect='auto'))
+	colors = sns.color_palette(n_colors=3, palette='bright')
+	fig, ax = plt.subplots(1, 1,figsize=(10,7), subplot_kw=dict(aspect='auto'))
 	ax.yaxis.set_visible(False)
-	sns.distplot(geo_partisan_vec,color='b',hist=False,label='Geographic distance',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(.25,.75),'shade':False},ax=ax)
-	sns.distplot(final_partisan_vec,color='r',hist=False,label='Geographic and demographic distance',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(.25,.75),'shade':False},ax=ax)
-	sns.distplot(original_partisan_vec,color='g',hist=False,label='Original districts',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(.25,.75),'shade':False},ax=ax)
+	sns.distplot(geo_partisan_vec, color=colors[0], hist=False, label='Geographic Distance', rug=False, kde_kws={'bw':.2,  'gridsize':150, 'clip':(.25, .75), 'shade':False}, ax=ax)
+	sns.distplot(final_partisan_vec, color=colors[1], hist=False, label='Geographic and Demographic Distance', rug=False, kde_kws={'bw':.2,  'gridsize':150, 'clip':(.25, .75), 'shade':False},ax=ax)
+	sns.distplot(original_partisan_vec, color=colors[2], hist=False, label='Original Districts', rug=False, kde_kws={'bw':.2,  'gridsize':150, 'clip':(.25, .75), 'shade':False}, ax=ax)
+	ax.legend(fontsize=16)
+	ax.tick_params(axis='both', which='major', labelsize=15)
+	ax.tick_params(axis='both', which='minor', labelsize=15)
 
-	fig.savefig('../maps/'+state+'/static/partisan_outcomes_demographic.png',bbox_inches='tight')
+
+	fig.savefig('../maps/'+state+'/static/partisan_outcomes_demographic.pdf', bbox_inches='tight', dpi=300)
 
 
 	final_demog_vec = np.zeros(len(np.unique(df.CD_2010)))
@@ -152,14 +155,19 @@ def make_histograms(df,state):
 		original_demog_vec[district] = (df.CD_2010 == district).dot(df.POP_BLACK)/((df.CD_2010 == district).dot(df.POP_TOTAL))
 	
 	
-	fig, ax = plt.subplots(1, 1,figsize=(8,8), subplot_kw=dict(aspect='auto'))
+	fig, ax = plt.subplots(1, 1,figsize=(10,7), subplot_kw=dict(aspect='auto'))
 	ax.yaxis.set_visible(False)
-	sns.distplot(geo_demog_vec,color='b',hist=False,label='Geographic distance',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(0,.8),'shade':False},ax=ax)
-	sns.distplot(final_demog_vec,color='r',hist=False,label='Geographic and demographic distance',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(0,.8),'shade':False},ax=ax)
-	sns.distplot(original_demog_vec,color='g',hist=False,label='Original districts',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(0,.8),'shade':False},ax=ax)
+	sns.distplot(geo_demog_vec,color=colors[0],hist=False,label='Geographic Distance',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(0,.8),'shade':False},ax=ax)
+	sns.distplot(final_demog_vec,color=colors[1],hist=False,label='Geographic and Demographic Distance',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(0,.8),'shade':False},ax=ax)
+	sns.distplot(original_demog_vec,color=colors[2],hist=False,label='Original Districts',rug=True,kde_kws={'bw':.2, 'gridsize':150,'clip':(0,.8),'shade':False},ax=ax)
+	ax.legend(fontsize=16)
+	ax.tick_params(axis='both', which='major', labelsize=15)
+	ax.tick_params(axis='both', which='minor', labelsize=15)	
+	fig.savefig('../maps/'+state+'/static/demographic_outcomes_demographic.pdf', bbox_inches='tight', dpi=300)
 
-	fig.savefig('../maps/'+state+'/static/demographic_outcomes_demographic.png',bbox_inches='tight')
-
+	print('dumping')
+	with open('../maps/'+state+'/static/kde_data_'+state+'.p', 'wb') as f:
+		pickle.dump([geo_partisan_vec, final_partisan_vec, original_partisan_vec, geo_demog_vec, final_demog_vec, original_demog_vec], f)
 
 
 
@@ -236,11 +244,11 @@ if __name__ == '__main__':
 		if state in ['NC', 'MD', 'VA']:
 			is_wide = True
 		else:
-                	is_wide = False
+			is_wide = False
 		
 		# make maps			
 		mapper = map_maker(ds.pcnct_df, state, is_wide=is_wide)
-		mapper.make_state_maps('../maps/')
+		mapper.make_state_maps('../maps/{}/static/'.format(state))
 
 		# compute district level stats
 		dist_df_before = ds.pcnct_df[['DEM', 'REP', 'POP_BLACK', 'POP_TOTAL', 'CD_2010']].groupby('CD_2010').sum()
@@ -261,7 +269,7 @@ if __name__ == '__main__':
 		# make some histograms and look at other stats
 		make_histograms(ds.pcnct_df, state)
 		
-		print_stats(ds.pcnct_df,state,ds.alphaW_best)
+		print_stats(ds.pcnct_df, state, ds.alphaW_best)
 		
 		#This will pickle the file, for testing purposes 3/26/18
 		#with open('tmp','wb') as f:

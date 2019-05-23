@@ -20,7 +20,7 @@ class district_solver(object):
 		self.wget = False
 
 		self.random_start = True
-		self.reg_param = 20 #25
+		self.reg_param = 75 #25
 
 	def load_data(self, build=False):
 		"""Assigns self.pcnct_df attribute, either by reading in a pickle or solving from raw data
@@ -143,7 +143,7 @@ class district_solver(object):
 				self.cost_best = cost
 				self.alphaW_best = alphaW
 
-		print(self.state, alphaW, self.cost_best)
+		# print(self.state, alphaW, self.cost_best)
 
 
 		# update dataframe with districts for each precinct
@@ -162,8 +162,8 @@ class district_solver(object):
 
 		#Next increase alphaW until the 10% threshold has been reached. 10% may need to be made higher?
 
-		for alphaW in [.2, .4, .6, .8]:#I trimmed some values for speed here.
-			
+		for alphaW in [.05, .1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6, .65, .7, .75, .8, .85 ,.9 ,1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5]:#I trimmed some values for speed here.
+			print('alphaW', alphaW)
 			# initialize cost_best variable
 
 			self.cost_best = 20
@@ -208,7 +208,7 @@ class district_solver(object):
 					self.alphaW_best = alphaW
 					self.best_cost_demographic = cost_demographic
 
-			print(self.state, alphaW, self.cost_best)
+			print(self.state, alphaW, self.best_cost_demographic, self.cost_best, self.best_cost_demographic/self.cost_best)
 
 
 			if self.best_cost_demographic/self.cost_best > demographic_param:

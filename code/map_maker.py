@@ -10,6 +10,11 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.colors import Normalize
 from states import states
+import matplotlib as mpl
+import seaborn as sns
+
+sns.set_style("white")
+mpl.rc('font',family='serif', size=20)
 
 
 class map_maker(object):
@@ -23,13 +28,13 @@ class map_maker(object):
         state_shape : 'tall', 'square', or 'wide'
 
         """
-        self.pcnct_df = pcnct_df.to_crs(epsg=4267)
+        # self.pcnct_df = pcnct_df.to_crs(epsg=4267)
         self.state = state
 
         if is_wide:
-            self.figsize = (10, 3.2)
+            self.figsize = (20, 6.4)
         else: 
-            self.figsize = (10, 5)
+            self.figsize = (20, 10)
 
     def make_state_maps(self, figure_directory=None):
         """Creates figure and calls '_get_single_map' and '_get_cmap' to fill panels
@@ -64,7 +69,7 @@ class map_maker(object):
             utils.make_folder(figure_directory)
             name = '{}_before_after.png'.format(self.state)
             path = figure_directory + name
-            fig.savefig(path, dpi=150, bbox_inches='tight')
+            fig.savefig(path, dpi=450, bbox_inches='tight')
             plt.close(fig)
 
         else:
@@ -82,9 +87,10 @@ class map_maker(object):
         bounds = np.linspace(.2, .8, 8, dtype=float).tolist()
         kw = dict(orientation='horizontal', norm=self.norm, spacing='proportional', fraction=1.95, pad=0.5, aspect=30)    
         fig.subplots_adjust(bottom=0.08)
-        ax.set_title('Percent Republican', fontsize=12)
-        fig.colorbar(self.cmap, ax=ax, **kw)
-
+        ax.set_title('Percent Republican', fontsize=24, pad=25)
+        cbar = fig.colorbar(self.cmap, ax=ax, **kw)
+        cbar.ax.tick_params(labelsize=22) 
+        # cb.set_label(label='a label',weight='bold')
 
     def _get_single_map(self, ax, groupvar):
         """
@@ -116,7 +122,7 @@ class map_maker(object):
         df['color'] = [self.cmap.to_rgba(value) for value in df['REP_PCT'].values]
 
         for facecolor, state_ in zip(df['color'], df['geometry']):           
-                ax.add_geometries([state_], ccrs.PlateCarree(), facecolor=facecolor, edgecolor='black', linewidth=.3)
+                ax.add_geometries([state_], ccrs.PlateCarree(), facecolor=facecolor, edgecolor='black', linewidth=.4)
 
     def _get_cmap(self, values, cmap, vmin=.3, vmax=.7):
         """
@@ -144,11 +150,24 @@ class map_maker(object):
 
 if __name__ == "__main__":
 
-    # read in precinct data
-    for state in ['AL', 'NC', 'PA', 'MD', 'FL', 'CO']:
-        with open('{}_data.pkl'.format(state), 'rb') as f:
-            ds = pickle.load(f)
-            df = ds.pcnct_df
-            df = df.to_crs(epsg=4267)
-            mm = map_maker(df, state)
-            mm.make_maps()
+
+    # # read in precinct data
+    # for state in ['AL', 'NC', 'PA', 'MD', 'FL', 'CO']:
+    #     with open('{}_data.pkl'.format(state), 'rb') as f:
+    #         ds = pickle.load(f)
+    #         df = ds.pcnct_df
+    #         df = df.to_crs(epsg=4267)
+    mm = map_maker([], 'AL')
+    mm._get_cmap([.3, .7], cmap='coolwarm')
+    fig = plt.figure(figsize=(12,1))
+    gs1 = gridspec.GridSpec(nrows=2, ncols=2, height_ratios=[.4,.2])
+    ax1 = fig.add_subplot(gs1[0, 0], projection=ccrs.PlateCarree())
+    ax2 = fig.add_subplot(gs1[0, 1], projection=ccrs.PlateCarree())
+    ax3 = fig.add_subplot(gs1[1, :], projection=ccrs.PlateCarree())
+    for a in [ax1, ax2, ax3]:
+        a.background_patch.set_visible(False)
+        a.outline_patch.set_visible(False)
+    mm._plot_colorbar(a, fig)
+    plt.savefig('color_bar.pdf', dpi=500, bbox_inches='tight')
+    # plt.show()
+            # mm.make_maps()
